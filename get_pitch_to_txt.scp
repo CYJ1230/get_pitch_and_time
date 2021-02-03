@@ -1,0 +1,151 @@
+# 点击主窗口的Control 菜单下的New praat script 按钮，以建立一个新的脚本语言编辑窗口，然后将脚本语言拷贝到脚本语言编辑窗口中；
+# 执行这个程序，你需要在C 盘temp 文件夹下存放成对的[同名]TextGrid和PitchTier 文件；
+# 然后按脚本编辑窗口的Run 菜单下的Run 按钮执行程序；运行时，会弹出一个对话框，如下图所示：
+# 请在上图1 位置输入参考标注内容的层级序号，程序将根据参考标注内容提供的边界信息来提取音高数据；请在上图2 位置输入提取基频点的个数，程序将根据这个参量来决定一个单元内（如音节或声韵母）的基频点数目。设置好之后请按上图3 的“OK”按钮继续运行。
+# 运行结束后，您将在C 盘temp 文件夹下找到提取出来的数据文件，其名称是TextGrid 文件的名称加上“_Pitch”，类型是文本文件。您可以使用Excel表格打开刚才得到的数据文件，以观察和分析数据。
+form 对话框
+positive the_Index_of_Referenced_Tier_in_TextGrid 1
+positive the_Number_of_Pitch_Points_in_a_Interval 10
+endform
+dirPath$ = "D:\temp\"
+Create Strings as file list... list 'dirPath$'\*.TextGrid
+fileNum= Get number of strings
+tierNum=the_Index_of_Referenced_Tier_in_TextGrid
+pointNum =the_Number_of_Pitch_Points_in_a_Interval
+for ifile to fileNum
+select Strings list
+fileName$ = Get string... ifile
+newFileName$ = fileName$ - ".TextGrid"
+textGridFileName$= newFileName$ +".TextGrid"
+textGridFileName$ = dirPath$ +textGridFileName$
+pitchTierFileName$= newFileName$ +".PitchTier"
+pitchTierFileName$= dirPath$+pitchTierFileName$
+saveFileName$= newFileName$ +"_Pitch.txt"
+saveFileName$ = dirPath$ +saveFileName$
+filedelete 'saveFileName$'
+fileappend 'saveFileName$' 文件名
+fileappend 'saveFileName$' ,
+fileappend 'saveFileName$' 标注内容
+fileappend 'saveFileName$' ,
+fileappend 'saveFileName$' 起点时间
+fileappend 'saveFileName$' ,
+fileappend 'saveFileName$' 末点时间
+fileappend 'saveFileName$' ,
+fileappend 'saveFileName$' 时长
+fileappend 'saveFileName$' ,
+Read from file... 'pitchTierFileName$'
+select PitchTier 'newFileName$'
+pitchPointNum=Get number of points
+for pitchNum from 1 to pitchPointNum
+pitchTime'pitchNum'=Get time from index... 'pitchNum'
+endfor
+pitchNum=pitchPointNum+1
+pitchTime'pitchNum'=Get finishing time
+Read from file... 'textGridFileName$'
+select TextGrid 'newFileName$'
+dd=Is interval tier... 'tierNum'
+if dd=1
+intervalNum= Get number of intervals... 'tierNum'
+endif
+if dd=0
+intervalNum= Get number of points... 'tierNum'
+endif
+beginTime0=0
+endTime0=0
+for interNum from 1 to intervalNum
+if dd=1
+labeName'interNum'$= Get label of interval... 'tierNum' 'interNum'
+beginTime'interNum'=Get starting point... 'tierNum' 'interNum'
+endTime'interNum'=Get end point... 'tierNum' 'interNum'
+selLength'interNum'=endTime'interNum'-beginTime'interNum'
+endif
+if dd=0
+labeName'interNum'$= Get label of point... 'tierNum' 'interNum'
+xuhao='interNum'-1
+beginTime'interNum'=endTime'xuhao'
+endTime'interNum'=Get time of point... 'tierNum' 'interNum'
+selLength'interNum'=endTime'interNum'-beginTime'interNum'
+endif
+startPoint=1
+pitchStartTime=0
+pitchEndTime=0
+startSel=0
+sT=beginTime'interNum'
+eT=endTime'interNum'
+pitchStartTime'interNum'=0
+pitchEndTime'interNum'=0
+for pitchNum from startPoint to pitchPointNum
+if pitchTime'pitchNum'>=sT and pitchTime'pitchNum'<=eT
+startSel=startSel+1
+if startSel=1
+pitchStartTime'interNum'=pitchTime'pitchNum'
+endif
+pitchNextNum=pitchNum+1
+pitchNextTime=pitchTime'pitchNextNum'
+if pitchNextTime>eT
+pitchEndTime'interNum'=pitchTime'pitchNum'
+endif
+startPoint=pitchNum-1
+endif
+endfor
+endfor
+select PitchTier 'newFileName$'
+dianNum= pointNum
+for interNum from 1 to intervalNum
+if interNum =1
+fileappend 'saveFileName$' 基频起点
+fileappend 'saveFileName$' ,
+fileappend 'saveFileName$' 基频末点
+fileappend 'saveFileName$' ,
+for dian from 1 to dianNum
+fileappend 'saveFileName$' 点
+fileappend 'saveFileName$' 'dian'
+fileappend 'saveFileName$' -基频值
+fileappend 'saveFileName$' ,
+endfor
+fileappend 'saveFileName$' 'newline$'
+endif
+fileappend 'saveFileName$' 'textGridFileName$'
+fileappend 'saveFileName$' ,
+lN$=labeName'interNum'$
+fileappend 'saveFileName$' 'lN$'
+fileappend 'saveFileName$' ,
+bT=beginTime'interNum'
+fileappend 'saveFileName$' 'bT'
+fileappend 'saveFileName$' ,
+eT=endTime'interNum'
+fileappend 'saveFileName$' 'eT'
+fileappend 'saveFileName$' ,
+sL=selLength'interNum'
+fileappend 'saveFileName$' 'sL'
+fileappend 'saveFileName$' ,
+pST=pitchStartTime'interNum'
+pET=pitchEndTime'interNum'
+if pST>0 and pET>0
+fileappend 'saveFileName$' 'pST'
+fileappend 'saveFileName$' ,
+fileappend 'saveFileName$' 'pET'
+fileappend 'saveFileName$' ,
+a=pST
+b=pET
+c=('b'-'a')/('dianNum'-1)
+select PitchTier 'newFileName$'
+tempposition= 'a'
+for pitchdata from 1 to 'dianNum'
+pitchTemp= Get value at time... 'tempposition'
+fileappend 'saveFileName$' 'pitchTemp'
+fileappend 'saveFileName$' ,
+tempposition='tempposition'+'c'
+endfor
+endif
+fileappend 'saveFileName$' 'newline$'
+endfor
+endif
+select TextGrid 'newFileName$'
+Remove
+select PitchTier 'newFileName$'
+Remove
+endfor
+select Strings list
+Remove
+exit
